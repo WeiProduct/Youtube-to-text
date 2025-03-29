@@ -13,6 +13,7 @@ To use:
 import os
 import subprocess
 import tempfile
+import uuid
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import speech_recognition as sr
@@ -28,16 +29,24 @@ def youtube_to_audio_yt_dlp(youtube_url, output_folder="."):
         "-f", "bestaudio",
         "--extract-audio",
         "--audio-format", "mp3",
+        "--no-check-certificates",  # Skip HTTPS certificate validation
+        "--no-warnings",  # Suppress warnings
+        "--cookies-from-browser", "chrome",  # Use Chrome cookies to appear more like a regular browser
+        "--user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",  # Use a common browser User-Agent
         "-o", os.path.join(output_folder, "%(title)s.%(ext)s"),
         youtube_url
     ]
     
     try:
+        print(f"Attempting to download: {youtube_url}")
         # Get the list of mp3 files before download
         before_files = set([f for f in os.listdir(output_folder) if f.endswith('.mp3')])
         
         # Run the download command
         result = subprocess.run(command, check=True, capture_output=True, text=True)
+        print(f"Download output: {result.stdout}")
+        if result.stderr:
+            print(f"Download errors: {result.stderr}")
         
         # Get the list of mp3 files after download
         after_files = set([f for f in os.listdir(output_folder) if f.endswith('.mp3')])
@@ -52,74 +61,65 @@ def youtube_to_audio_yt_dlp(youtube_url, output_folder="."):
         
         raise Exception("Couldn't find MP3 file!")
     except subprocess.CalledProcessError as e:
+        print(f"Download failed with error: {e.stderr}")
         raise Exception(f"Error downloading audio: {e.stderr}")
     except Exception as e:
+        print(f"Unexpected error: {str(e)}")
         raise Exception(f"Error processing video: {str(e)}")
 
 def convert_mp3_to_text(mp3_file):
     """Converts an MP3 file to text using speech recognition."""
     recognizer = sr.Recognizer()
     
+    # Load the audio file
+    with sr.AudioFile(mp3_file) as source:
+        audio_data = recognizer.record(source)
+    
+    # Use Google's speech recognition
     try:
-        # Load the audio file
-        with sr.AudioFile(mp3_file) as source:
-            audio_data = recognizer.record(source)
-        
-        # Use Google's speech recognition
         text = recognizer.recognize_google(audio_data)
         return text
     except sr.UnknownValueError:
         return "Speech Recognition could not understand audio"
     except sr.RequestError as e:
         return f"Could not request results; {e}"
-    except Exception as e:
-        return f"Error processing audio: {str(e)}"
 
 @app.route('/api/convert', methods=['POST'])
 def convert():
     # Get YouTube URL from request
     data = request.get_json()
     if not data or 'youtube_url' not in data:
-        return jsonify({
-            'success': False,
-            'error': 'YouTube URL is required'
-        }), 400
+        return jsonify({'error': 'YouTube URL is required'}), 400
     
     youtube_url = data['youtube_url']
     
     try:
         # Create a temporary directory for this request
-        with tempfile.TemporaryDirectory() as temp_dir:
-            print(f"Processing URL: {youtube_url}")
-            
-            # Download YouTube audio
-            mp3_file = youtube_to_audio_yt_dlp(youtube_url, temp_dir)
-            print(f"Downloaded audio: {mp3_file}")
-            
-            # Convert audio to text
-            text = convert_mp3_to_text(mp3_file)
-            print(f"Converted to text: {text[:100]}...")
-            
-            return jsonify({
-                'success': True,
-                'text': text,
-                'youtube_url': youtube_url
-            })
+        temp_dir = tempfile.mkdtemp()
+        
+        # Download YouTube audio
+        mp3_file = youtube_to_audio_yt_dlp(youtube_url, temp_dir)
+        
+        # Convert audio to text
+        # Note: For a real implementation, you might want to use a more
+        # robust speech recognition service for better accuracy
+        text = convert_mp3_to_text(mp3_file)
+        
+        # Clean up the temporary file
+        os.remove(mp3_file)
+        os.rmdir(temp_dir)
+        
+        return jsonify({
+            'success': True,
+            'text': text,
+            'youtube_url': youtube_url
+        })
     
     except Exception as e:
-        print(f"Error: {str(e)}")
         return jsonify({
             'success': False,
             'error': str(e)
         }), 500
 
-@app.route('/api/health', methods=['GET'])
-def health_check():
-    return jsonify({
-        'status': 'healthy',
-        'message': 'Backend is running'
-    })
-
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port) 
+    app.run(debug=True) 
