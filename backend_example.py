@@ -5,70 +5,52 @@ This is a simple Flask application that provides an API endpoint
 to download YouTube audio and convert it to text.
 
 To use:
-1. Install dependencies: pip install flask flask-cors yt-dlp speechrecognition
+1. Install dependencies: pip install flask flask-cors pytube speechrecognition
 2. Run the server: python backend_example.py
 3. Make requests to http://localhost:5000/api/convert with a YouTube URL
 """
 
 import os
-import subprocess
 import tempfile
-import uuid
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import speech_recognition as sr
+from pytube import YouTube
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
-def youtube_to_audio_yt_dlp(youtube_url, output_folder="."):
-    """Downloads YouTube audio as MP3 and returns the file path."""
-    os.makedirs(output_folder, exist_ok=True)
-    command = [
-        "yt-dlp",
-        "-f", "bestaudio",
-        "--extract-audio",
-        "--audio-format", "mp3",
-        "-o", os.path.join(output_folder, "%(title)s.%(ext)s"),
-        youtube_url
-    ]
-    
+def youtube_to_audio_pytube(youtube_url, output_folder="."):
+    """Downloads YouTube audio using pytube and returns the file path."""
     try:
         print(f"Attempting to download: {youtube_url}")
-        result = subprocess.run(command, check=True, capture_output=True, text=True)
         
-        # Check stdout first
-        output = result.stdout
-        for line in output.splitlines():
-            if "[ExtractAudio] Destination:" in line:
-                return line.split("[ExtractAudio] Destination:", 1)[1].strip()
+        # Create a YouTube object
+        yt = YouTube(youtube_url)
         
-        # Check stderr if not found in stdout
-        if not output:
-            output = result.stderr
-            for line in output.splitlines():
-                if "[ExtractAudio] Destination:" in line:
-                    return line.split("[ExtractAudio] Destination:", 1)[1].strip()
+        # Get the audio stream (highest quality)
+        audio_stream = yt.streams.filter(only_audio=True).order_by('abr').desc().first()
         
-        # If still not found, try to find any .mp3 file in the output folder
-        for file in os.listdir(output_folder):
-            if file.endswith(".mp3"):
-                return os.path.join(output_folder, file)
-                
-        raise Exception("Couldn't find MP3 file!")
-    except subprocess.CalledProcessError as e:
-        print(f"Download failed with error: {e.stderr}")
-        raise Exception(f"Error downloading audio: {e.stderr}")
+        if not audio_stream:
+            raise Exception("No audio stream found")
+            
+        # Download the audio
+        print(f"Downloading audio stream: {audio_stream.itag}")
+        output_file = audio_stream.download(output_path=output_folder)
+        
+        print(f"Downloaded to: {output_file}")
+        return output_file
+        
     except Exception as e:
-        print(f"Unexpected error: {str(e)}")
-        raise Exception(f"Error processing video: {str(e)}")
+        print(f"Download failed with error: {str(e)}")
+        raise Exception(f"Error downloading audio: {str(e)}")
 
-def convert_mp3_to_text(mp3_file):
-    """Converts an MP3 file to text using speech recognition."""
+def convert_audio_to_text(audio_file):
+    """Converts an audio file to text using speech recognition."""
     recognizer = sr.Recognizer()
     
     # Load the audio file
-    with sr.AudioFile(mp3_file) as source:
+    with sr.AudioFile(audio_file) as source:
         audio_data = recognizer.record(source)
     
     # Use Google's speech recognition
@@ -94,15 +76,13 @@ def convert():
         temp_dir = tempfile.mkdtemp()
         
         # Download YouTube audio
-        mp3_file = youtube_to_audio_yt_dlp(youtube_url, temp_dir)
+        audio_file = youtube_to_audio_pytube(youtube_url, temp_dir)
         
         # Convert audio to text
-        # Note: For a real implementation, you might want to use a more
-        # robust speech recognition service for better accuracy
-        text = convert_mp3_to_text(mp3_file)
+        text = convert_audio_to_text(audio_file)
         
         # Clean up the temporary file
-        os.remove(mp3_file)
+        os.remove(audio_file)
         os.rmdir(temp_dir)
         
         return jsonify({
