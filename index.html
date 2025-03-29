@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube to Text Converter</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>YouTube to Text Converter</h1>
+        <div class="form-container">
+            <form id="youtube-form">
+                <div class="input-group">
+                    <input type="text" id="youtube-url" placeholder="Enter YouTube URL" required>
+                    <button type="submit">Convert</button>
+                </div>
+            </form>
+        </div>
+        
+        <div class="result-container hidden" id="result-container">
+            <h2>Processing Status</h2>
+            <div id="status-message">Submitting your request...</div>
+            <div class="loading-spinner" id="loading-spinner"></div>
+        </div>
+        
+        <div class="instructions">
+            <h2>How it works</h2>
+            <ol>
+                <li>Enter a valid YouTube video URL in the input field</li>
+                <li>Click "Convert" to send the URL to our processing server</li>
+                <li>Wait while the server:
+                    <ul>
+                        <li>Downloads the audio from YouTube</li>
+                        <li>Converts the audio to text using speech recognition</li>
+                    </ul>
+                </li>
+                <li>View and download the transcribed text</li>
+            </ol>
+        </div>
+    </div>
+    
+    <footer>
+        <p>Note: This frontend is hosted on GitHub Pages. The actual processing happens on a separate backend server.</p>
+    </footer>
+    
+    <script src="script.js"></script>
+</body>
+</html> 
