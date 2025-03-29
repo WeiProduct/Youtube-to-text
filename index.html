@@ -9,22 +9,18 @@
 <body>
     <div class="container">
         <h1>YouTube to Text Converter</h1>
-        <div class="form-container">
-            <form id="youtube-form">
-                <div class="input-group">
-                    <input type="text" id="youtube-url" placeholder="Enter YouTube URL" required>
-                    <button type="submit">Convert</button>
-                </div>
-            </form>
+        
+        <div class="input-container">
+            <input type="text" id="youtubeUrl" placeholder="https://www.youtube.com/watch?v=..." />
+            <button id="convertBtn">Convert</button>
         </div>
         
-        <div class="result-container hidden" id="result-container">
+        <div class="status-container" id="status">
             <h2>Processing Status</h2>
-            <div id="status-message">Submitting your request...</div>
-            <div class="loading-spinner" id="loading-spinner"></div>
+            <p>Enter a YouTube URL and click "Convert" to start.</p>
         </div>
         
-        <div class="instructions">
+        <div class="how-it-works">
             <h2>How it works</h2>
             <ol>
                 <li>Enter a valid YouTube video URL in the input field</li>
@@ -38,11 +34,11 @@
                 <li>View and download the transcribed text</li>
             </ol>
         </div>
+        
+        <div class="site-footer">
+            <p>Note: This frontend is hosted on GitHub Pages. The actual processing happens on a separate backend server.</p>
+        </div>
     </div>
-    
-    <footer>
-        <p>Note: This frontend is hosted on GitHub Pages. The actual processing happens on a separate backend server.</p>
-    </footer>
     
     <script src="script.js"></script>
 </body>
