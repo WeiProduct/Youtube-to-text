@@ -26,23 +26,27 @@ def youtube_to_audio_yt_dlp(youtube_url, output_folder="."):
     os.makedirs(output_folder, exist_ok=True)
     command = [
         "yt-dlp",
-        "-f", "bestaudio",
+        "-f", "251/250/249/140",  # Try different audio formats (webm/m4a)
         "--extract-audio",
         "--audio-format", "mp3",
-        "--no-check-certificates",  # Skip HTTPS certificate validation
-        "--no-warnings",  # Suppress warnings
-        "--geo-bypass",  # Try to bypass geo-restrictions
-        "--no-playlist",  # Don't download playlists
-        "--extractor-args", "youtube:player_client=web",  # Use web player client
-        "--user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-        "--add-header", "Accept-Language: en-US,en;q=0.9",
-        "--add-header", "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "--no-check-certificates",
+        "--no-warnings",
+        "--no-playlist",
+        "--ignore-errors",
+        "--no-cache-dir",
+        "--progress",
+        "--format-sort", "quality",
+        "--prefer-free-formats",
+        "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "--referer", "https://www.youtube.com",
         "-o", os.path.join(output_folder, "%(title)s.%(ext)s"),
         youtube_url
     ]
     
     try:
         print(f"Attempting to download: {youtube_url}")
+        print(f"Using command: {' '.join(command)}")
+        
         # Get the list of mp3 files before download
         before_files = set([f for f in os.listdir(output_folder) if f.endswith('.mp3')])
         
