@@ -26,47 +26,35 @@ def youtube_to_audio_yt_dlp(youtube_url, output_folder="."):
     os.makedirs(output_folder, exist_ok=True)
     command = [
         "yt-dlp",
-        "-f", "251/250/249/140",  # Try different audio formats (webm/m4a)
+        "-f", "bestaudio",
         "--extract-audio",
         "--audio-format", "mp3",
-        "--no-check-certificates",
-        "--no-warnings",
-        "--no-playlist",
-        "--ignore-errors",
-        "--no-cache-dir",
-        "--progress",
-        "--format-sort", "quality",
-        "--prefer-free-formats",
-        "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-        "--referer", "https://www.youtube.com",
         "-o", os.path.join(output_folder, "%(title)s.%(ext)s"),
         youtube_url
     ]
     
     try:
         print(f"Attempting to download: {youtube_url}")
-        print(f"Using command: {' '.join(command)}")
-        
-        # Get the list of mp3 files before download
-        before_files = set([f for f in os.listdir(output_folder) if f.endswith('.mp3')])
-        
-        # Run the download command
         result = subprocess.run(command, check=True, capture_output=True, text=True)
-        print(f"Download output: {result.stdout}")
-        if result.stderr:
-            print(f"Download errors: {result.stderr}")
         
-        # Get the list of mp3 files after download
-        after_files = set([f for f in os.listdir(output_folder) if f.endswith('.mp3')])
+        # Check stdout first
+        output = result.stdout
+        for line in output.splitlines():
+            if "[ExtractAudio] Destination:" in line:
+                return line.split("[ExtractAudio] Destination:", 1)[1].strip()
         
-        # Find the new mp3 file(s)
-        new_files = after_files - before_files
+        # Check stderr if not found in stdout
+        if not output:
+            output = result.stderr
+            for line in output.splitlines():
+                if "[ExtractAudio] Destination:" in line:
+                    return line.split("[ExtractAudio] Destination:", 1)[1].strip()
         
-        if new_files:
-            # Return the path to the new mp3 file
-            new_file = list(new_files)[0]
-            return os.path.join(output_folder, new_file)
-        
+        # If still not found, try to find any .mp3 file in the output folder
+        for file in os.listdir(output_folder):
+            if file.endswith(".mp3"):
+                return os.path.join(output_folder, file)
+                
         raise Exception("Couldn't find MP3 file!")
     except subprocess.CalledProcessError as e:
         print(f"Download failed with error: {e.stderr}")
