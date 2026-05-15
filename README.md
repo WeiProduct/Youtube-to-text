@@ -18,7 +18,7 @@ You can host the frontend part of this application on GitHub Pages for free:
 3. Scroll down to the "GitHub Pages" section
 4. Select the branch you want to publish (usually `main` or `master`)
 5. Click "Save"
-6. Your site will be published at `https://yourusername.github.io/repository-name/`
+6. Your site will be published through GitHub Pages, for example `https://weiproduct.github.io/Youtube-to-text/`
 
 ## Backend Requirements
 
@@ -59,24 +59,24 @@ def youtube_to_audio_yt_dlp(youtube_url, output_folder="."):
         "-o", os.path.join(output_folder, "%(title)s.%(ext)s"),
         youtube_url
     ]
-    
+
     # Get the list of mp3 files before download
     before_files = set([f for f in os.listdir(output_folder) if f.endswith('.mp3')])
-    
+
     # Run the download command
     subprocess.run(command, check=True, capture_output=True, text=True)
-    
+
     # Get the list of mp3 files after download
     after_files = set([f for f in os.listdir(output_folder) if f.endswith('.mp3')])
-    
+
     # Find the new mp3 file(s)
     new_files = after_files - before_files
-    
+
     if new_files:
         # Return the path to the new mp3 file
         new_file = list(new_files)[0]
         return os.path.join(output_folder, new_file)
-    
+
     raise Exception("Couldn't find MP3 file!")
 ```
 
@@ -100,4 +100,4 @@ You would need to add speech recognition code to convert the MP3 to text (e.g., 
 
 ## License
 
-MIT 
+MIT
